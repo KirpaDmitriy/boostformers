@@ -23,8 +23,6 @@ class SemanticDataFrame(pd.DataFrame):
             ), "Параметр description должен быть строкой"
         self._description = description  # описание таблицы
 
-        self._columns_descriptions = None  # описания колонок
-
         self._train_texts = None  # тексты для обучения модели извлечения эмбеддингов строк таблицы
 
         self._table_lines_embeddings = None  # подсчитанные жмбеды для строк таблицы
@@ -128,6 +126,6 @@ class SemanticDataFrame(pd.DataFrame):
                 final_answer[-1].append(self.embeddings.get_words()[sub_answer])
         return final_answer
 
-    def search_lines(self, text: str, n_lines: int = 5) -> list[pd.Series]:
+    def search_lines(self, text: str, n_lines: int = 5) -> pd.DataFrame:
         _, found_indexes = self.table_index.search(np.array([self.embeddings.get_word_vector(text)]), n_lines)
         return self.iloc[found_indexes[0]]
