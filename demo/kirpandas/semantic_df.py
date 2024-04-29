@@ -5,7 +5,7 @@ import functools
 import faiss
 
 from catboost import CatBoostRegressor
-from more_itertools import batched
+from itertools import batched
 
 
 class SemanticDataFrame(pd.DataFrame):

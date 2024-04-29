@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, HTTPException, File, status
 from fastapi.responses import JSONResponse
 import uuid
 from pathlib import Path
-# from demo.kirpandas.semantic_df import SemanticDataFrame
+from demo.kirpandas.semantic_df import SemanticDataFrame
 
 app = FastAPI()
 
