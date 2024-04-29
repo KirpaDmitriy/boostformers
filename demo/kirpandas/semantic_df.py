@@ -5,7 +5,7 @@ import functools
 import faiss
 
 from catboost import CatBoostRegressor
-from itertools import batched
+from more_itertools import chunked
 
 
 class SemanticDataFrame(pd.DataFrame):
@@ -78,7 +78,7 @@ class SemanticDataFrame(pd.DataFrame):
         if not self._embeddings_index:
             print("Загрузка индекса эмбеддингов...")
             self._embeddings_index = faiss.IndexFlatL2(300)
-            for i, batch in enumerate(batched(self._embeddings.get_words(), 100_000)):
+            for i, batch in enumerate(chunked(self._embeddings.get_words(), 100_000)):
                 self._embeddings_index.add(np.array([self._embeddings.get_word_vector(word) for word in batch]))
             print(f"Индекс эмбеддингов загружен. Количество элементов: {self._embeddings_index.ntotal}")
         return self._embeddings_index
@@ -88,7 +88,7 @@ class SemanticDataFrame(pd.DataFrame):
         if not self._table_index:
             print("Загрузка индекса строк таблиц...")
             self._table_index = faiss.IndexFlatL2(300)
-            for batch in batched(self._table_lines_embeddings, 100_000):
+            for batch in chunked(self._table_lines_embeddings, 100_000):
                 self._table_index.add(np.array(batch))
             print(f"Индекс строк таблиц загружен. Количество элементов: {self._table_index.ntotal}")
         return self._table_index
