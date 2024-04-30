@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi import FastAPI, File, HTTPException, UploadFile, status, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -26,7 +26,7 @@ async def ping():
 
 @app.post("/upload")
 async def upload_data(
-    description: str, targets: list[str | None], file: UploadFile = File(...)
+    description: str = Form(...), targets: list[str | None] = Form(...), file: UploadFile = File(...)
 ):
     try:
         print(targets)
