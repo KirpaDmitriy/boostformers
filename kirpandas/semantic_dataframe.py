@@ -23,7 +23,7 @@ class SemanticDataFrame(pd.DataFrame):
         embeddings_path = kwargs.pop("embeddings_path", None) or os.environ.get(
             "KIRPANDAS_EMBEDDINGS_PATH"
         )
-        if embeddings_path is not None and not isinstance(embeddings_path, str):
+        if not isinstance(embeddings_path, str):
             raise ValueError(
                 "В виде строки необходимо передать путь к файлу с эмбеддингами в аргументе `embeddings_path`, либо в "
                 "переменной среды окружения `KIRPANDAS_EMBEDDINGS_PATH`"
@@ -159,20 +159,13 @@ class SemanticDataFrame(pd.DataFrame):
         train_text_indexes = self._train_texts.notna() & (
             self._train_texts.str.len() > 0
         )
-        print(train_text_indexes)
-        print(train_text_indexes.shape)
         train_features = self[train_text_indexes]
         train_texts = self._train_texts[train_text_indexes]
-        print("Getting word vectors for model train...")
-        _ = self.embeddings
-        print("Getting word vectors for finished. Forming vectors")
         train_embeddings = np.array(
             [self.embeddings.get_word_vector(train_text) for train_text in train_texts]
         )
-        print("Word vectors for model train formed. Training model...")
 
         self.embeddings_extraction_model.fit(train_features, train_embeddings)
-        print("Model trained")
 
         return self.embeddings_extraction_model
 

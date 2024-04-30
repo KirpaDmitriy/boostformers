@@ -62,7 +62,6 @@ def train_semantic_table(
     dataframe_id: str, semantic_dataframe: SemanticDataFrame, targets: list[str]
 ) -> None:
     semantic_dataframe.set_train_texts(pd.Series(targets))
-    print("Train texts set")
     semantic_dataframe.set_embeddings_extraction_model(
         CatBoostRegressor(
             iterations=100,
@@ -72,13 +71,9 @@ def train_semantic_table(
             eval_metric="MultiRMSE",
         )
     )
-    print("Embeddings extraction model set")
     semantic_dataframe.fit_embeddings_extraction_model()
-    print("Embeddings extraction model fitted")
     semantic_dataframe.load_embeddings_index()
-    print("Embeddings index is loading")
     semantic_dataframe.load_dataframe_index()
-    print("Dataframe index is loading")
 
     semantic_dataframe.dump_dataframe_index(get_dataframe_index_path(dataframe_id))
     semantic_dataframe.dump_embeddings_index(get_embeddings_index_path())
