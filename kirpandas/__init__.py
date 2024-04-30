@@ -1,1 +1,1 @@
-from semantic_dataframe import SemanticDataFrame
+from .semantic_dataframe import SemanticDataFrame
