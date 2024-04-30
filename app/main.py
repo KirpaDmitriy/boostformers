@@ -29,6 +29,8 @@ async def upload_data(
     description: str, targets: list[str], file: UploadFile = File(...)
 ):
     try:
+        print(targets)
+        print(type(file))
         dataframe_id = str(uuid.uuid4())
         save_data(dataframe_id, file.file.read())
         print(description)
