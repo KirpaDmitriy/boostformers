@@ -1,12 +1,13 @@
 import os
 import uuid
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, status, Form
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .utils import (get_dataframe_path, get_semantic_table, save_data,
                     train_semantic_table)
+from .validation import UploadHandlerPostBody
 
 app = FastAPI()
 
@@ -26,17 +27,17 @@ async def ping():
 
 @app.post("/upload")
 async def upload_data(
-    description: str = Form(...), targets: list[str | None] = Form(...), file: UploadFile = File(...)
+    body_metadata: UploadHandlerPostBody, file: UploadFile = File(...)
 ):
     try:
-        print(targets)
+        print(body_metadata.targets)
         print(type(file))
-        print(description)
+        print(body_metadata.description)
         dataframe_id = str(uuid.uuid4())
         save_data(dataframe_id, file.file.read())
         get_semantic_table(dataframe_id)
         semantic_dataframe = get_semantic_table(dataframe_id)
-        train_semantic_table(semantic_dataframe, targets)
+        train_semantic_table(semantic_dataframe, body_metadata.targets)
         return JSONResponse(
             content={"dataframe_id": dataframe_id}, status_code=status.HTTP_201_CREATED
         )
