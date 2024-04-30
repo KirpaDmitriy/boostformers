@@ -161,11 +161,14 @@ class SemanticDataFrame(pd.DataFrame):
         )
         train_features = self[train_text_indexes]
         train_texts = self._train_texts[train_text_indexes]
+        print("Getting word vectors for model train...")
         train_embeddings = np.array(
             [self.embeddings.get_word_vector(train_text) for train_text in train_texts]
         )
+        print("Word vectors for model train formed. Training model...")
 
         self.embeddings_extraction_model.fit(train_features, train_embeddings)
+        print("Model trained")
 
         return self.embeddings_extraction_model
 
