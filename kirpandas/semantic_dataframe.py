@@ -1,9 +1,10 @@
-import pandas as pd
-import numpy as np
-import fasttext
 import functools
-import faiss
+import os
 
+import faiss
+import fasttext
+import numpy as np
+import pandas as pd
 from catboost import CatBoostRegressor
 from more_itertools import chunked
 
@@ -13,19 +14,21 @@ class SemanticDataFrame(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
         description = kwargs.pop("description", None)
-        embeddings_path = kwargs.pop("embeddings_path", "ft_native_300_ru_wiki_lenta_nltk_word_tokenize.bin")
+        embeddings_path = kwargs.pop("embeddings_path") or os.environ.get(
+            "KIRPANDAS_EMBEDDINGS_PATH"
+        )
 
         super().__init__(*args, **kwargs)
 
-        if description is not None:
-            assert isinstance(
-                description, str
-            ), "Параметр description должен быть строкой"
+        if description is not None and not isinstance(description, str):
+            raise ValueError("Параметр `description` должен быть строкой")
         self._description = description  # описание таблицы
 
-        self._train_texts = None  # тексты для обучения модели извлечения эмбеддингов строк таблицы
+        self._train_texts = (
+            None  # тексты для обучения модели извлечения эмбеддингов строк таблицы
+        )
 
-        self._table_lines_embeddings = None  # подсчитанные жмбеды для строк таблицы
+        self._table_lines_embeddings = None  # подсчитанные эмбеды для строк таблицы
 
         self._embeddings_path = embeddings_path  # путь к модели эмбеддингов
         self._embeddings = None  # модель эмбеддингов
@@ -37,16 +40,15 @@ class SemanticDataFrame(pd.DataFrame):
 
     @property
     def _constructor(self):
-        custom_attribues = {}
+        custom_attributes = {}
         for attr in self._metadata:
             if attr not in pd.DataFrame._metadata:
-                custom_attribues[attr.removeprefix("_")] = getattr(self, attr)
-        return functools.partial(self.__class__, **custom_attribues)
+                custom_attributes[attr.removeprefix("_")] = getattr(self, attr)
+        return functools.partial(self.__class__, **custom_attributes)
 
     def set_description(self, description: str) -> None:
-        assert isinstance(
-            description, str
-        ), "Параметр description должен быть строкой"
+        if not isinstance(description, str):
+            raise ValueError("Параметр `description` должен быть строкой")
         self._description = description
 
     @property
@@ -60,14 +62,15 @@ class SemanticDataFrame(pd.DataFrame):
     def train_texts(self) -> pd.Series:
         return self._train_texts
 
-    def choose_model(self):
-        ...
+    def choose_model(self): ...
 
     @property
     def embeddings(self):
         if not self._embeddings:
             print("Загрузка эмбеддингов...")
-            self._embeddings = fasttext.load_model(self._embeddings_path)  # модель эмбеддингов
+            self._embeddings = fasttext.load_model(
+                self._embeddings_path
+            )  # модель эмбеддингов
             print("Эмбеддинги загружены")
         return self._embeddings
 
@@ -77,8 +80,12 @@ class SemanticDataFrame(pd.DataFrame):
             print("Загрузка индекса эмбеддингов...")
             self._embeddings_index = faiss.IndexFlatL2(300)
             for i, batch in enumerate(chunked(self._embeddings.get_words(), 100_000)):
-                self._embeddings_index.add(np.array([self._embeddings.get_word_vector(word) for word in batch]))
-            print(f"Индекс эмбеддингов загружен. Количество элементов: {self._embeddings_index.ntotal}")
+                self._embeddings_index.add(
+                    np.array([self._embeddings.get_word_vector(word) for word in batch])
+                )
+            print(
+                f"Индекс эмбеддингов загружен. Количество элементов: {self._embeddings_index.ntotal}"
+            )
         return self._embeddings_index
 
     @property
@@ -88,7 +95,9 @@ class SemanticDataFrame(pd.DataFrame):
             self._table_index = faiss.IndexFlatL2(300)
             for batch in chunked(self._table_lines_embeddings, 100_000):
                 self._table_index.add(np.array(batch))
-            print(f"Индекс строк таблиц загружен. Количество элементов: {self._table_index.ntotal}")
+            print(
+                f"Индекс строк таблиц загружен. Количество элементов: {self._table_index.ntotal}"
+            )
         return self._table_index
 
     def fit_embedder(self):
@@ -96,24 +105,23 @@ class SemanticDataFrame(pd.DataFrame):
         train_features = self[text_indexes]
         train_texts = self._train_texts[text_indexes]
         train_embeddings = np.array(
-            [
-                self.embeddings.get_word_vector(train_text)
-                for train_text in train_texts
-            ]
+            [self.embeddings.get_word_vector(train_text) for train_text in train_texts]
         )
         self._text_model = CatBoostRegressor(
             iterations=100,
             depth=int(np.sqrt(len(self.columns))) + 1,
             learning_rate=0.1,
             loss_function="MultiRMSE",
-            eval_metric="MultiRMSE"
+            eval_metric="MultiRMSE",
         )
 
         self._text_model.fit(train_features, train_embeddings)
 
         return self._text_model
 
-    def fill_embeddings(self) -> None:  # оптимизировать вычисление эмбеддов только для уже невычисленных
+    def fill_embeddings(
+        self,
+    ) -> None:  # оптимизировать вычисление эмбеддов только для уже невычисленных
         self._table_lines_embeddings = self._text_model.predict(self)
 
     def generate_texts(self, lines: np.array) -> list:
@@ -127,5 +135,7 @@ class SemanticDataFrame(pd.DataFrame):
         return final_answer
 
     def search_lines(self, text: str, n_lines: int = 5) -> pd.DataFrame:
-        _, found_indexes = self.table_index.search(np.array([self.embeddings.get_word_vector(text)]), n_lines)
+        _, found_indexes = self.table_index.search(
+            np.array([self.embeddings.get_word_vector(text)]), n_lines
+        )
         return self.iloc[found_indexes[0]]
