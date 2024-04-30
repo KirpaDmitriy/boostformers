@@ -26,7 +26,7 @@ async def ping():
 
 @app.post("/upload")
 async def upload_data(
-    description: str, targets: list[str], file: UploadFile = File(...)
+    description: str, targets: list[str | None], file: UploadFile = File(...)
 ):
     try:
         print(targets)
