@@ -26,18 +26,11 @@ async def ping():
 
 
 @app.post("/upload")
-async def upload_data(
-    body_metadata: UploadHandlerPostBody, file: UploadFile = File(...)
-):
+async def upload_data(file: UploadFile = File(...)):
     try:
-        print(body_metadata.targets)
-        print(type(file))
-        print(body_metadata.description)
         dataframe_id = str(uuid.uuid4())
         save_data(dataframe_id, file.file.read())
         get_semantic_table(dataframe_id)
-        semantic_dataframe = get_semantic_table(dataframe_id)
-        train_semantic_table(semantic_dataframe, body_metadata.targets)
         return JSONResponse(
             content={"dataframe_id": dataframe_id}, status_code=status.HTTP_201_CREATED
         )
@@ -54,6 +47,21 @@ async def upload_data(
         )
     finally:
         file.file.close()
+
+
+@app.post("/train_dataset")
+async def upload_data(dataframe_id: str, body_metadata: UploadHandlerPostBody):
+    if not os.path.exists(get_dataframe_path(dataframe_id)):
+        return HTTPException(
+            status_code=404,
+            detail="Dataset was not upload",
+        )
+    semantic_dataframe = get_semantic_table(dataframe_id)
+    semantic_dataframe.set_description(body_metadata.description)
+    train_semantic_table(dataframe_id, semantic_dataframe, body_metadata.targets)
+    return JSONResponse(
+        content={"dataframe_id": dataframe_id}, status_code=status.HTTP_201_CREATED
+    )
 
 
 @app.get("/search")

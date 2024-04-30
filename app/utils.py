@@ -55,12 +55,11 @@ def get_semantic_table(dataframe_id: str):
         kwargs["dataframe_index_path"] = dataframe_index_path
     if os.path.exists(embeddings_index_path):
         kwargs["embeddings_index_path"] = embeddings_index_path
-    print(dataframe.head().to_json(orient="columns"))
     return SemanticDataFrame(dataframe, columns=dataframe.columns, **kwargs)
 
 
 def train_semantic_table(
-    semantic_dataframe: SemanticDataFrame, targets: list[str]
+    dataframe_id: str, semantic_dataframe: SemanticDataFrame, targets: list[str]
 ) -> None:
     semantic_dataframe.set_train_texts(pd.Series(targets))
     semantic_dataframe.set_embeddings_extraction_model(
@@ -75,3 +74,6 @@ def train_semantic_table(
     semantic_dataframe.fit_embeddings_extraction_model()
     semantic_dataframe.load_embeddings_index()
     semantic_dataframe.load_dataframe_index()
+
+    semantic_dataframe.dump_dataframe_index(get_dataframe_index_path(dataframe_id))
+    semantic_dataframe.dump_embeddings_index(get_embeddings_index_path())
