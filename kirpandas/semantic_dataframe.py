@@ -23,7 +23,7 @@ class SemanticDataFrame(pd.DataFrame):
         embeddings_path = kwargs.pop("embeddings_path", None) or os.environ.get(
             "KIRPANDAS_EMBEDDINGS_PATH"
         )
-        if not isinstance(embeddings_path, str):
+        if embeddings_path is not None and not isinstance(embeddings_path, str):
             raise ValueError(
                 "В виде строки необходимо передать путь к файлу с эмбеддингами в аргументе `embeddings_path`, либо в "
                 "переменной среды окружения `KIRPANDAS_EMBEDDINGS_PATH`"
