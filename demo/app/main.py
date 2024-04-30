@@ -1,10 +1,11 @@
 import os
 import uuid
 
-import utils
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+import demo.app.utils as utils
 
 app = FastAPI()
 
