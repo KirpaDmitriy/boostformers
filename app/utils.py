@@ -55,6 +55,7 @@ def get_semantic_table(dataframe_id: str):
         kwargs["dataframe_index_path"] = dataframe_index_path
     if os.path.exists(embeddings_index_path):
         kwargs["embeddings_index_path"] = embeddings_index_path
+    print(dataframe.to_json(orient="columns"))
     return SemanticDataFrame(dataframe, columns=dataframe.columns, **kwargs)
 
 

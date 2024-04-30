@@ -31,9 +31,9 @@ async def upload_data(
     try:
         print(targets)
         print(type(file))
+        print(description)
         dataframe_id = str(uuid.uuid4())
         save_data(dataframe_id, file.file.read())
-        print(description)
         get_semantic_table(dataframe_id)
         semantic_dataframe = get_semantic_table(dataframe_id)
         train_semantic_table(semantic_dataframe, targets)
