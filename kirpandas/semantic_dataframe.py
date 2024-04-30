@@ -159,6 +159,8 @@ class SemanticDataFrame(pd.DataFrame):
         train_text_indexes = self._train_texts.notna() & (
             self._train_texts.str.len() > 0
         )
+        print(train_text_indexes)
+        print(train_text_indexes.shape)
         train_features = self[train_text_indexes]
         train_texts = self._train_texts[train_text_indexes]
         print("Getting word vectors for model train...")
