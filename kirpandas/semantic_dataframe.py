@@ -14,7 +14,7 @@ class SemanticDataFrame(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
         description = kwargs.pop("description", None)
-        embeddings_path = kwargs.pop("embeddings_path") or os.environ.get(
+        embeddings_path = kwargs.pop("embeddings_path", None) or os.environ.get(
             "KIRPANDAS_EMBEDDINGS_PATH"
         )
         if not isinstance(embeddings_path, str):
