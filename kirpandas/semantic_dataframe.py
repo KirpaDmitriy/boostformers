@@ -162,6 +162,8 @@ class SemanticDataFrame(pd.DataFrame):
         train_features = self[train_text_indexes]
         train_texts = self._train_texts[train_text_indexes]
         print("Getting word vectors for model train...")
+        _ = self.embeddings
+        print("Getting word vectors for finished. Forming vectors")
         train_embeddings = np.array(
             [self.embeddings.get_word_vector(train_text) for train_text in train_texts]
         )
