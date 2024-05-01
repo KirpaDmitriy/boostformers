@@ -3,16 +3,17 @@ import os
 from typing import Any
 
 import faiss
-import fasttext
 import numpy as np
 import pandas as pd
 from more_itertools import chunked
+
+from .wrappers import EmbedderWrapper
 
 
 class SemanticDataFrame(pd.DataFrame):
     _metadata = pd.DataFrame._metadata + [
         "_description",
-        "_embeddings_path",
+        "_embeddings_model",
         "_embeddings_index_path",
         "_dataframe_index_path",
     ]
@@ -20,13 +21,10 @@ class SemanticDataFrame(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         description = kwargs.pop("description", None)
 
-        embeddings_path = kwargs.pop("embeddings_path", None) or os.environ.get(
-            "KIRPANDAS_EMBEDDINGS_PATH"
-        )
-        if not isinstance(embeddings_path, str):
+        embeddings_model = kwargs.pop("embeddings_model")
+        if not issubclass(embeddings_model.__class__, EmbedderWrapper):
             raise ValueError(
-                "В виде строки необходимо передать путь к файлу с эмбеддингами в аргументе `embeddings_path`, либо в "
-                "переменной среды окружения `KIRPANDAS_EMBEDDINGS_PATH`"
+                "Модель embeddings_model должна быть сущностью подкласса класса `EmbedderWrapper`"
             )
 
         embeddings_index_path = kwargs.pop(
@@ -43,8 +41,7 @@ class SemanticDataFrame(pd.DataFrame):
             raise ValueError("Параметр `description` должен быть строкой")
         self._description = description  # описание таблицы
 
-        self._embeddings_path = embeddings_path  # путь к модели эмбеддингов
-        self._embeddings = None  # модель эмбеддингов
+        self._embeddings: EmbedderWrapper = embeddings_model  # модель эмбеддингов
         self._embeddings_index = None  # индекс всего эмбеддингового пространства
         self._embeddings_index_path = (
             embeddings_index_path  # путь к индексу всего эмбеддингового пространства
@@ -84,12 +81,10 @@ class SemanticDataFrame(pd.DataFrame):
     ##### БЛОК ЭМБЕДДИНГОВ ВСЕГО ПРОСТРАНСТВА #####
 
     @property
-    def embeddings(self):
-        if not self._embeddings:
+    def embeddings(self) -> EmbedderWrapper:
+        if not self._embeddings.is_loaded:
             print("Загрузка эмбеддингов...")
-            self._embeddings = fasttext.load_model(
-                self._embeddings_path
-            )  # модель эмбеддингов
+            self._embeddings.load_model()
             print("Эмбеддинги загружены")
         return self._embeddings
 
@@ -120,7 +115,7 @@ class SemanticDataFrame(pd.DataFrame):
                 )
 
     @property
-    def embeddings_index(self):
+    def embeddings_index(self) -> Any:
         self.load_embeddings_index()
         return self._embeddings_index
 
@@ -144,7 +139,7 @@ class SemanticDataFrame(pd.DataFrame):
             and callable(getattr(model, "fit"))
             and hasattr(model, "predict")
             and callable(getattr(model, "predict"))
-        ):
+        ):  # если что-то крякает, как утка...
             self._embeddings_extraction_model = model
         else:
             raise ValueError(
@@ -152,10 +147,10 @@ class SemanticDataFrame(pd.DataFrame):
             )
 
     @property
-    def embeddings_extraction_model(self) -> Any | None:
+    def embeddings_extraction_model(self) -> Any:
         return self._embeddings_extraction_model
 
-    def fit_embeddings_extraction_model(self):
+    def fit_embeddings_extraction_model(self) -> Any:
         train_text_indexes = self._train_texts.notna() & (
             self._train_texts.str.len() > 0
         )
@@ -203,7 +198,7 @@ class SemanticDataFrame(pd.DataFrame):
                 )
 
     @property
-    def dataframe_index(self):
+    def dataframe_index(self) -> Any:
         self.load_dataframe_index()
         return self._dataframe_index
 
@@ -212,9 +207,9 @@ class SemanticDataFrame(pd.DataFrame):
 
     ##### БЛОК ПРИКЛАДНЫХ МЕТОДОВ #####
 
-    def search_lines(self, text: str, n_lines: int = 5) -> pd.DataFrame:
+    def search_lines(self, text: str, n_results: int = 5) -> pd.DataFrame:
         _, found_indexes = self.dataframe_index.search(
-            np.array([self.embeddings.get_word_vector(text)]), n_lines
+            np.array([self.embeddings.get_word_vector(text)]), n_results
         )
         return self.iloc[found_indexes[0]]
 
@@ -225,5 +220,5 @@ class SemanticDataFrame(pd.DataFrame):
         for answer in found_indexes:
             final_answer.append([])
             for sub_answer in answer:
-                final_answer[-1].append(self.embeddings.get_words()[sub_answer])
+                final_answer[-1].append(self.embeddings.get_all_words()[sub_answer])
         return final_answer

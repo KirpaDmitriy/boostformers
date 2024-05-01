@@ -5,7 +5,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-import app.utils as utils
+import demo_app.utils.dataframe as df_utils
 
 from .validation import UploadHandlerPostBody
 
@@ -26,11 +26,14 @@ async def ping():
 
 
 @app.post("/upload")
-async def upload_data(file: UploadFile = File(...)):
+async def upload_data(description: str | None = None, file: UploadFile = File(...)):
     try:
         dataframe_id = str(uuid.uuid4())
-        utils.save_data(dataframe_id, file.file.read())
-        utils.get_semantic_table(dataframe_id)
+        df_utils.save_data(dataframe_id, file.file.read())
+        semantic_dataframe = df_utils.get_semantic_table(dataframe_id)
+        if description:
+            semantic_dataframe.set_description(description)
+            df_utils.dataFramesStorage.add_semantic_dataframe(semantic_dataframe)
         return JSONResponse(
             content={"dataframe_id": dataframe_id}, status_code=status.HTTP_201_CREATED
         )
@@ -51,29 +54,39 @@ async def upload_data(file: UploadFile = File(...)):
 
 @app.post("/train_dataframe")
 async def upload_data(dataframe_id: str, body_metadata: UploadHandlerPostBody):
-    if not os.path.exists(utils.get_dataframe_path(dataframe_id)):
+    if not os.path.exists(df_utils.get_dataframe_path(dataframe_id)):
         return HTTPException(
             status_code=404,
             detail="Dataframe was not upload",
         )
-    semantic_dataframe = utils.get_semantic_table(dataframe_id)
-    semantic_dataframe.set_description(body_metadata.description)
-    utils.train_semantic_table(dataframe_id, semantic_dataframe, body_metadata.targets)
+    semantic_dataframe = df_utils.get_semantic_table(dataframe_id)
+    if body_metadata.description:
+        semantic_dataframe.set_description(body_metadata.description)
+        df_utils.dataFramesStorage.add_semantic_dataframe(semantic_dataframe)
+    df_utils.dataFramesStorage.add_semantic_dataframe(dataframe_id, semantic_dataframe)
+    df_utils.train_semantic_table(
+        dataframe_id, semantic_dataframe, body_metadata.targets
+    )
     return JSONResponse(
         content={"dataframe_id": dataframe_id}, status_code=status.HTTP_200_OK
     )
 
 
 @app.get("/search")
-async def upload_data(query: str, dataframe_id: str | None = None):
-    if not os.path.exists(utils.get_dataframe_path(dataframe_id)):
+async def upload_data(query: str, dataframe_id: str | None = None, n_results: int = 5):
+    if not os.path.exists(df_utils.get_dataframe_path(dataframe_id)):
         return HTTPException(
             status_code=404,
             detail="Dataframe was not upload",
         )
     if dataframe_id:
-        semantic_dataframe = utils.get_semantic_table(dataframe_id)
-        found = semantic_dataframe.search_lines(query)
+        semantic_dataframe = df_utils.get_semantic_table(dataframe_id)
+        found = semantic_dataframe.search_lines(query, n_results=n_results)
         return found.to_json(orient="records")
 
-    return {}
+    return [
+        df_utils.get_semantic_table(found_dataframe_id)
+        for found_dataframe_id in df_utils.dataFramesStorage.search_dataframes(
+            query, n_results=n_results
+        )
+    ]

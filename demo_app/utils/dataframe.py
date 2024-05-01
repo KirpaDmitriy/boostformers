@@ -6,10 +6,15 @@ import numpy as np
 import pandas as pd
 from catboost import CatBoostRegressor
 
-from kirpandas import SemanticDataFrame
+from kirpandas import SemanticDataFrame, SemanticDataFramesStorage
+
+from .embedder import fasttext_embedder
 
 DATA_DIR = os.environ.get("KIRPANDAS_DEMO_APP_STORAGE") or "./data"
 Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
+
+
+dataFramesStorage = SemanticDataFramesStorage()
 
 
 def load_dataframe(path: str) -> pd.DataFrame:
@@ -55,7 +60,12 @@ def get_semantic_table(dataframe_id: str):
         kwargs["dataframe_index_path"] = dataframe_index_path
     if os.path.exists(embeddings_index_path):
         kwargs["embeddings_index_path"] = embeddings_index_path
-    return SemanticDataFrame(dataframe, columns=dataframe.columns, **kwargs)
+    return SemanticDataFrame(
+        dataframe,
+        embeddings_model=fasttext_embedder,
+        columns=dataframe.columns,
+        **kwargs,
+    )
 
 
 def train_semantic_table(
