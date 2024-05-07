@@ -53,7 +53,7 @@ async def upload_data(description: str | None = None, file: UploadFile = File(..
 
 
 @app.post("/train_dataframe")
-async def upload_data(dataframe_id: str, body_metadata: UploadHandlerPostBody):
+async def train_dataframe(dataframe_id: str, body_metadata: UploadHandlerPostBody):
     if not os.path.exists(df_utils.get_dataframe_path(dataframe_id)):
         return HTTPException(
             status_code=404,
@@ -73,7 +73,7 @@ async def upload_data(dataframe_id: str, body_metadata: UploadHandlerPostBody):
 
 
 @app.get("/search")
-async def upload_data(query: str, dataframe_id: str | None = None, n_results: int = 5):
+async def search(query: str, dataframe_id: str | None = None, n_results: int = 5):
     if not os.path.exists(df_utils.get_dataframe_path(dataframe_id)):
         return HTTPException(
             status_code=404,

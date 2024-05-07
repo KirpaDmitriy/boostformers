@@ -27,6 +27,8 @@ class SemanticDataFramesStorage:
             raise ValueError(
                 "Для сохранения набора данных в индексе, ему нужно задать описание `description`"
             )
+        if dataframe_id in self._saved_ids:
+            return
         self._ids_sequence.append(dataframe_id)
         self._saved_ids.add(dataframe_id)
         semantic_dataframe_embedding = self.embeddings.get_word_vector(
