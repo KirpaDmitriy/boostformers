@@ -85,7 +85,7 @@ async def search(query: str, dataframe_id: str | None = None, n_results: int = 5
         return found.to_json(orient="records")
 
     return [
-        df_utils.get_semantic_table(found_dataframe_id)
+        (found_dataframe_id, df_utils.get_semantic_table(found_dataframe_id).description)
         for found_dataframe_id in df_utils.dataFramesStorage.search_dataframes(
             query, n_results=n_results
         )
